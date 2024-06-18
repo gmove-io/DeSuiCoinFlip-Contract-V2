@@ -1,13 +1,8 @@
 module desui_labs::coin_flip_v2 {
 
-    use std::vector;
-    use std::option::{Self, Option};
     use std::type_name::{Self, TypeName};
     use sui::coin::{Self, Coin};
     use sui::balance::{Self, Balance};
-    use sui::object::{Self, UID, ID};
-    use sui::tx_context::{Self, TxContext};
-    use sui::transfer;
     use sui::bls12381::bls12381_min_pk_verify;
     use sui::hash::blake2b256;
     use sui::kiosk::{Self, Kiosk};
@@ -35,7 +30,7 @@ module desui_labs::coin_flip_v2 {
 
     // --------------- Events ---------------
 
-    struct NewGame<phantom T> has copy, drop {
+    public struct NewGame<phantom T> has copy, drop {
         game_id: ID,
         player: address,
         guess: u8,
@@ -44,7 +39,7 @@ module desui_labs::coin_flip_v2 {
         partnership_type: Option<TypeName>,
     }
 
-    struct Outcome<phantom T> has copy, drop {
+    public struct Outcome<phantom T> has copy, drop {
         game_id: ID,
         player: address,
         player_won: bool,
@@ -52,13 +47,13 @@ module desui_labs::coin_flip_v2 {
         challenged: bool,
     }
 
-    struct FeeCollected<phantom T> has copy, drop {
+    public struct FeeCollected<phantom T> has copy, drop {
         amount: u64,
     }
 
     // --------------- Objects ---------------
 
-    struct House<phantom T> has key {
+    public struct House<phantom T> has key {
         id: UID,
         pub_key: vector<u8>,
         fee_rate: u128,
@@ -68,7 +63,7 @@ module desui_labs::coin_flip_v2 {
         treasury: Balance<T>,
     }
 
-    struct Game<phantom T> has key, store {
+    public struct Game<phantom T> has key, store {
         id: UID,
         player: address,
         start_epoch: u64,
@@ -78,27 +73,26 @@ module desui_labs::coin_flip_v2 {
         fee_rate: u128,
     }
 
-    struct Partnership<phantom P> has key {
+    public struct Partnership<phantom P> has key {
         id: UID,
         fee_rate: u128,
     }
 
-    struct AdminCap has key {
+    public struct AdminCap has key {
         id: UID,
     }
 
     // --------------- Witness ---------------
 
-    struct COIN_FLIP_V2 has drop {}
+    public struct COIN_FLIP_V2 has drop {}
 
     // --------------- Constructor ---------------
 
     fun init(otw: COIN_FLIP_V2, ctx: &mut TxContext) {
-        let admin = tx_context::sender(ctx);
         let publisher = package::claim(otw, ctx);
-        transfer::public_transfer(publisher, admin);
+        transfer::public_transfer(publisher, ctx.sender());
         let admin_cap = AdminCap { id: object::new(ctx) };
-        transfer::transfer(admin_cap, admin);
+        transfer::transfer(admin_cap, ctx.sender());
     }
 
     // --------------- House Funtions ---------------
@@ -119,7 +113,7 @@ module desui_labs::coin_flip_v2 {
             fee_rate,
             min_stake_amount,
             max_stake_amount,
-            pool: coin::into_balance(init_fund),
+            pool: init_fund.into_balance(),
             treasury: balance::zero(),
         });
     }
@@ -129,8 +123,8 @@ module desui_labs::coin_flip_v2 {
         house: &mut House<T>,
         coin: Coin<T>,
     ) {        
-        let balance = coin::into_balance(coin);
-        balance::join(&mut house.pool, balance);
+        let balance = coin.into_balance();
+        house.pool.join(balance);
     }
 
     public entry fun withdraw<T>(
@@ -140,7 +134,7 @@ module desui_labs::coin_flip_v2 {
         recipient: address,
         ctx: &mut TxContext
     ) {
-        assert!(amount <= balance::value(&house.pool), EPoolNotEnough);
+        assert!(amount <= house.pool.value(), EPoolNotEnough);
         let coin = coin::take(&mut house.pool, amount, ctx);
         transfer::public_transfer(coin, recipient);
     }
@@ -151,7 +145,7 @@ module desui_labs::coin_flip_v2 {
         recipient: address,
         ctx: &mut TxContext,
     ) {
-        let treaury_balance = house_treasury_balance(house);
+        let treaury_balance = house.treasury.value();
         let fee = coin::take(
             &mut house.treasury,
             treaury_balance,
@@ -185,7 +179,8 @@ module desui_labs::coin_flip_v2 {
         house.fee_rate = fee_rate;
     }
 
-    public entry fun copy_admin_cap_to<T>(
+    // ! removed type arg here
+    public entry fun copy_admin_cap_to(
         _: &AdminCap,
         to: address,
         ctx: &mut TxContext,
@@ -225,7 +220,7 @@ module desui_labs::coin_flip_v2 {
         stake: Coin<T>,
         ctx: &mut TxContext,
     ): ID {
-        let fee_rate = house_fee_rate(house);
+        let fee_rate = house.fee_rate;
         let (game_id, game) = new_game(house, guess, seed, stake, fee_rate, option::none(), ctx);
         dof::add(&mut house.id, game_id, game);
         game_id
@@ -265,10 +260,7 @@ module desui_labs::coin_flip_v2 {
             partnership_fee_rate(partnership)
         );
         let partnership_type = option::some(type_name::get<P>());
-        assert!(
-            kiosk::has_item_with_type<P>(kiosk, item),
-            EKioskItemNotFound,
-        );
+        assert!(kiosk.has_item_with_type<P>(item), EKioskItemNotFound);
         let (game_id, game) = new_game(house, guess, seed, stake, fee_rate, partnership_type, ctx);
         dof::add(&mut house.id, game_id, game);
         game_id
@@ -293,20 +285,16 @@ module desui_labs::coin_flip_v2 {
             seed,
             fee_rate,
         } = game;
-        let msg_vec = object::uid_to_bytes(&id);
+        let mut msg_vec = id.uid_to_bytes();
         vector::append(&mut msg_vec, seed);
-        let public_key = house_pub_key(house);
         assert!(
-            bls12381_min_pk_verify(
-                &bls_sig, &public_key, &msg_vec,
-            ),
+            bls12381_min_pk_verify(&bls_sig, &house.pub_key, &msg_vec),
             EInvalidBlsSig
         );
-        object::delete(id);
+        id.delete();
 
         let hashed_beacon = blake2b256(&bls_sig);
-        let first_byte = *vector::borrow(&hashed_beacon, 0);
-        let player_won: bool = (guess == first_byte % 2);
+        let player_won: bool = (guess == hashed_beacon[0] % 2);
 
         let pnl = settle_internal(house, player, player_won, stake, fee_rate, ctx);
 
@@ -322,17 +310,17 @@ module desui_labs::coin_flip_v2 {
 
     public entry fun batch_settle<T>(
         house: &mut House<T>,
-        game_ids: vector<ID>,
-        bls_sigs: vector<vector<u8>>,
+        mut game_ids: vector<ID>,
+        mut bls_sigs: vector<vector<u8>>,
         ctx: &mut TxContext,
     ) {
         assert!(
-            vector::length(&game_ids) == vector::length(&bls_sigs),
+            game_ids.length() == bls_sigs.length(),
             EBatchSettleInvalidInputs,
         );
-        while(!vector::is_empty(&game_ids)) {
-            let game_id = vector::pop_back(&mut game_ids);
-            let bls_sig = vector::pop_back(&mut bls_sigs);
+        while(!game_ids.is_empty()) {
+            let game_id = game_ids.pop_back();
+            let bls_sig = bls_sigs.pop_back();
             if (game_exists(house, game_id)) {
                 settle(house, game_id, bls_sig, ctx);
             };
@@ -345,7 +333,7 @@ module desui_labs::coin_flip_v2 {
         ctx: &mut TxContext,
     ) {
         assert!(game_exists(house, game_id), EGameNotExists);
-        let current_epoch = tx_context::epoch(ctx);
+        let current_epoch = ctx.epoch();
         let game = dof::remove<ID, Game<T>>(&mut house.id, game_id);
         let Game {
             id,
@@ -358,10 +346,10 @@ module desui_labs::coin_flip_v2 {
         } = game;
         // Ensure that minimum epochs have passed before user can cancel
         assert!(current_epoch > start_epoch + CHALLENGE_EPOCH_INTERVAL, ECannotChallenge);
-        let original_stake_amount = balance::value(&stake) / 2;
+        let original_stake_amount = stake.value() / 2;
         transfer::public_transfer(coin::from_balance(stake, ctx), player);
         
-        object::delete(id);
+        id.delete();
         event::emit(Outcome<T> {
             game_id,
             player,
@@ -382,11 +370,11 @@ module desui_labs::coin_flip_v2 {
     }
 
     public fun house_pool_balance<T>(house: &House<T>): u64 {
-        balance::value(&house.pool)
+        house.pool.value()
     }
 
     public fun house_treasury_balance<T>(house: &House<T>): u64 {
-        balance::value(&house.treasury)
+        house.treasury.value()
     }
 
     public fun house_stake_range<T>(house: &House<T>): (u64, u64) {
@@ -412,7 +400,7 @@ module desui_labs::coin_flip_v2 {
     }
 
     public fun game_stake_amount<T>(game: &Game<T>): u64 {
-        balance::value(&game.stake)
+        game.stake.value()
     }
 
     public fun game_fee_rate<T>(game: &Game<T>): u128 {
@@ -449,15 +437,15 @@ module desui_labs::coin_flip_v2 {
             stake_amount <= house.max_stake_amount,
             EInvalidStakeAmount
         );
-        let stake = coin::into_balance(stake);
+        let mut stake = stake.into_balance();
         // house place the stake
-        assert!(house_pool_balance(house) >= stake_amount, EPoolNotEnough);
-        let house_stake = balance::split(&mut house.pool, stake_amount);
-        balance::join(&mut stake, house_stake);
+        assert!(house.pool.value() >= stake_amount, EPoolNotEnough);
+        let house_stake = house.pool.split(stake_amount);
+        stake.join(house_stake);
 
         let id = object::new(ctx);
-        let game_id = object::uid_to_inner(&id);
-        let player = tx_context::sender(ctx);
+        let game_id = id.uid_to_inner();
+        let player = ctx.sender();
         event::emit(NewGame<T> {
             game_id,
             player,
@@ -470,7 +458,7 @@ module desui_labs::coin_flip_v2 {
         let game = Game<T> {
             id,
             player,
-            start_epoch: tx_context::epoch(ctx),
+            start_epoch: ctx.epoch(),
             stake,
             guess,
             seed,
@@ -483,24 +471,24 @@ module desui_labs::coin_flip_v2 {
         house: &mut House<T>,
         player: address,
         player_won: bool,
-        stake: Balance<T>,
+        mut stake: Balance<T>,
         fee_rate: u128,
         ctx: &mut TxContext,
     ): u64 {
-        let stake_amount = balance::value(&stake);
+        let stake_amount = stake.value();
         let original_stake_amount = stake_amount / 2;
         if(player_won) {
             let fee_amount = compute_fee_amount(stake_amount, fee_rate);
-            let fee = balance::split(&mut stake, fee_amount);
+            let fee = stake.split(fee_amount);
             event::emit(FeeCollected<T> {
                 amount: fee_amount,
             });
-            balance::join(&mut house.treasury, fee);
+            house.treasury.join(fee);
             let reward = coin::from_balance(stake, ctx);
             transfer::public_transfer(reward, player);
             original_stake_amount - fee_amount
         } else {
-            balance::join(&mut house.pool, stake);
+            house.pool.join(stake);
             original_stake_amount
         }
     }
@@ -546,11 +534,10 @@ module desui_labs::coin_flip_v2 {
         //     ),
         //     EInvalidBlsSig
         // );
-        object::delete(id);
+        id.delete();
 
         let hashed_beacon = blake2b256(&bls_sig);
-        let first_byte = *vector::borrow(&hashed_beacon, 0);
-        let player_won: bool = (guess == first_byte % 2);
+        let player_won: bool = (guess == hashed_beacon[0] % 2);
 
         settle_internal(house, player, player_won, stake, fee_rate, ctx);
         player_won

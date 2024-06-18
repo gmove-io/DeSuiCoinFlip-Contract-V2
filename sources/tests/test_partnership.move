@@ -19,7 +19,7 @@ module desui_labs::test_partnership {
         let discount_fee_rate: u128 = 5_000; // 0.5%
         let player_count: u64 = 8_000;
 
-        let scenario_val = tu::setup_house<SUI>(
+        let mut scenario_val = tu::setup_house<SUI>(
             init_pool_amount,
             fee_rate,
             min_stake_amount,
@@ -27,14 +27,14 @@ module desui_labs::test_partnership {
         );
         let scenario = &mut scenario_val;
         tu::setup_partnership<Dlab>(scenario, discount_fee_rate);
-        let player_generator = tu::new_player_generator(
+        let mut player_generator = tu::new_player_generator(
             b"CoinFlip V2 x DLab NFT",
             min_stake_amount,
             max_stake_amount,
         );
 
         // players start games and dev settle them
-        let idx: u64 = 0;
+        let mut idx: u64 = 0;
         while(idx < player_count) {
             let (player, stake) = tu::gen_player_and_stake<SUI>(
                 &mut player_generator,
@@ -45,7 +45,7 @@ module desui_labs::test_partnership {
             // start a game
             ts::next_tx(scenario, player);
             let (game_id, pool_balance, treasury_balance) = {
-                let house = ts::take_shared<House<SUI>>(scenario);
+                let mut house = ts::take_shared<House<SUI>>(scenario);
                 let pool_balance = cf::house_pool_balance(&house);
                 let treasury_balance = cf::house_treasury_balance(&house);
                 let partnership = ts::take_shared<Partnership<Dlab>>(scenario);
@@ -61,7 +61,7 @@ module desui_labs::test_partnership {
             // settle
             ts::next_tx(scenario, tu::dev());
             let player_won = {
-                let house = ts::take_shared<House<SUI>>(scenario);
+                let mut house = ts::take_shared<House<SUI>>(scenario);
                 assert!(cf::game_exists(&house, game_id), 0);
                 let game = cf::borrow_game(&house, game_id);
                 assert!(cf::game_guess(game) == ((idx % 2) as u8), 0);
@@ -106,7 +106,7 @@ module desui_labs::test_partnership {
         let recipient: address = @0xcafe;
         ts::next_tx(scenario, tu::dev());
         let treasury_balance = {
-            let house = ts::take_shared<House<SUI>>(scenario);
+            let mut house = ts::take_shared<House<SUI>>(scenario);
             std::debug::print(&house);
             let admin_cap = ts::take_from_sender<AdminCap>(scenario);
             let treasury_balance = cf::house_treasury_balance(&house);
@@ -142,7 +142,7 @@ module desui_labs::test_partnership {
         let discount_fee_rate: u128 = 5_000; // 0.5%
         let player_count: u64 = 8_000;
 
-        let scenario_val = tu::setup_house<SUI>(
+        let mut scenario_val = tu::setup_house<SUI>(
             init_pool_amount,
             fee_rate,
             min_stake_amount,
@@ -150,14 +150,14 @@ module desui_labs::test_partnership {
         );
         let scenario = &mut scenario_val;
         tu::setup_partnership<Dlab>(scenario, discount_fee_rate);
-        let player_generator = tu::new_player_generator(
+        let mut player_generator = tu::new_player_generator(
             b"CoinFlip V2 x DLab NFT x Bucket",
             min_stake_amount,
             max_stake_amount,
         );
 
         // players start games and dev settle them
-        let idx: u64 = 0;
+        let mut idx: u64 = 0;
         while(idx < player_count) {
             let (player, stake) = tu::gen_player_and_stake<SUI>(
                 &mut player_generator,
@@ -168,7 +168,7 @@ module desui_labs::test_partnership {
             // start a game
             ts::next_tx(scenario, player);
             let (game_id, pool_balance, treasury_balance) = {
-                let house = ts::take_shared<House<SUI>>(scenario);
+                let mut house = ts::take_shared<House<SUI>>(scenario);
                 let pool_balance = cf::house_pool_balance(&house);
                 let treasury_balance = cf::house_treasury_balance(&house);
                 let partnership = ts::take_shared<Partnership<Dlab>>(scenario);
@@ -184,7 +184,7 @@ module desui_labs::test_partnership {
             // settle
             ts::next_tx(scenario, tu::dev());
             let player_won = {
-                let house = ts::take_shared<House<SUI>>(scenario);
+                let mut house = ts::take_shared<House<SUI>>(scenario);
                 assert!(cf::game_exists(&house, game_id), 0);
                 let game = cf::borrow_game(&house, game_id);
                 assert!(cf::game_guess(game) == ((idx % 2) as u8), 0);
@@ -229,7 +229,7 @@ module desui_labs::test_partnership {
         let recipient: address = @0xcafe;
         ts::next_tx(scenario, tu::dev());
         let treasury_balance = {
-            let house = ts::take_shared<House<SUI>>(scenario);
+            let mut house = ts::take_shared<House<SUI>>(scenario);
             std::debug::print(&house);
             let admin_cap = ts::take_from_sender<AdminCap>(scenario);
             let treasury_balance = cf::house_treasury_balance(&house);

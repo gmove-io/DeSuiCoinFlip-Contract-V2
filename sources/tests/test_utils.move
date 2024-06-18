@@ -11,7 +11,7 @@ module desui_labs::test_utils {
 
     const DEV: address = @0xde1;
 
-    struct PlayerGenerator has store, drop {
+    public struct PlayerGenerator has store, drop {
         random: Random,
         min_stake_amount: u64,
         max_stake_amount: u64,
@@ -23,7 +23,7 @@ module desui_labs::test_utils {
         min_stake_amount: u64,
         max_stake_amount: u64,
     ): Scenario {
-        let scenario_val = ts::begin(dev());
+        let mut scenario_val = ts::begin(dev());
         let scenario = &mut scenario_val;
         {
             let otw = create_one_time_witness<COIN_FLIP_V2>();
@@ -92,7 +92,7 @@ module bucket_protocol::buck {
     use sui::transfer;
     use sui::url;
 
-    struct BUCK has drop {}
+    public struct BUCK has drop {}
 
     fun init(otw: BUCK, ctx: &mut TxContext) {
         let (buck_treasury_cap, buck_metadata) = coin::create_currency(
@@ -117,7 +117,7 @@ module desui_labs::dlab {
     use sui::tx_context::TxContext;
     use sui::transfer;
 
-    struct Dlab has key, store {
+    public struct Dlab has key, store {
         id: UID,
     }
 
