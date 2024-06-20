@@ -6,6 +6,8 @@ version = 0
 dependencies = [
   { name = "Sui" },
 ]
+manifest_digest = "38E7A3C423CAB2EAA8473557C25AB701283EBA693A04BC207C5369699EFEB4F8"
+deps_digest = "F8BBB0CCB2491CA29A3DF03D6F92277A4F3574266507ACD77214D37ECA3F3082"
 
 [[move.package]]
 name = "MoveStdlib"
@@ -18,3 +20,8 @@ source = { git = "https://github.com/MystenLabs/sui.git", rev = "framework/testn
 dependencies = [
   { name = "MoveStdlib" },
 ]
+
+[move.toolchain-version]
+compiler-version = "1.26.0"
+edition = "2024.beta"
+flavor = "sui"
