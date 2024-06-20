@@ -662,11 +662,12 @@ module desui_labs::coin_flip_v2 {
         let num_of_bets = seeds.length();
 
         // Ensure the stake amount is valid
-        let stake_amount = coin::value(&stake) / num_of_bets;
+        let stake_amount = coin::value(&stake);
+        let stake_per_bet = stake_amount / num_of_bets;
 
         assert!(
-            stake_amount >= house.min_stake_amount &&
-            stake_amount <= house.max_stake_amount,
+            stake_per_bet >= house.min_stake_amount &&
+            stake_per_bet <= house.max_stake_amount,
             EInvalidStakeAmount
         );
         let mut stake = stake.into_balance();
