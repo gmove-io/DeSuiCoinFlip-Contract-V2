@@ -71,7 +71,7 @@ const singlePlay = async () => {
 
   const delay = new Date().getTime() / 1000 - now;
 
-  console.log(`It took ${delay} with the Serial Executor to process 1 TX`);
+  console.log(`It took ${delay} to submit 1 TX`);
 };
 
 const submitWithSerialExecutor = async () => {
