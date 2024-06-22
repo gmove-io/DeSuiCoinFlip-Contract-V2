@@ -42,6 +42,7 @@ const play = () => {
 };
 
 const singlePlay = async () => {
+  const now = new Date().getTime() / 1000;
   const tx = new Transaction();
 
   const payments = tx.splitCoins(tx.gas, [tx.pure.u64(2)]);
@@ -66,24 +67,53 @@ const singlePlay = async () => {
     requestType: 'WaitForLocalExecution',
   });
 
-  console.log(result);
+  invariant(result.effects?.status.status === 'success');
+
+  const delay = new Date().getTime() / 1000 - now;
+
+  console.log(`It took ${delay} with the Serial Executor to process 1 TX`);
+};
+
+const submitWithSerialExecutor = async () => {
+  const now = new Date().getTime() / 1000;
+  const executor = new SerialTransactionExecutor({
+    client,
+    signer: keyPair,
+  });
+
+  await Promise.all(
+    NUMBER_OF_TXS.map(() => executor.executeTransaction(play()))
+  );
+
+  const delay = new Date().getTime() / 1000 - now;
+
+  console.log(`It took ${delay} with the Serial Executor to process 3 TXs`);
+};
+
+const submitWithParallelExecutor = async () => {
+  const now = new Date().getTime() / 1000;
+  const executor = new ParallelTransactionExecutor({
+    client,
+    maxPoolSize: 3,
+    initialCoinBalance: 4_000_000_000n,
+    minimumCoinBalance: 2_000_000_000n,
+    signer: keyPair,
+  });
+
+  await Promise.all(
+    NUMBER_OF_TXS.map(() => executor.executeTransaction(play()))
+  );
+
+  const delay = new Date().getTime() / 1000 - now;
+
+  console.log(`It took ${delay} with the Serial Executor to process 3 TXs`);
 };
 
 (async () => {
   try {
-    const now = new Date().getTime() / 1000;
-    const executor = new SerialTransactionExecutor({
-      client,
-      signer: keyPair,
-    });
-
-    const results = await Promise.all(
-      NUMBER_OF_TXS.map(() => executor.executeTransaction(play()))
-    );
-
-    console.log(results);
-
-    console.log(new Date().getTime() / 1000 - now);
+    await submitWithSerialExecutor();
+    await submitWithParallelExecutor();
+    await singlePlay();
   } catch (e) {
     console.log(e);
   }
