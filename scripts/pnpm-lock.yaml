@@ -15,8 +15,8 @@ importers:
         specifier: ^1.4.0
         version: 1.4.0
       '@mysten/sui':
-        specifier: ^1.1.2
-        version: 1.1.2(svelte@4.2.18)(typescript@5.5.2)
+        specifier: ^1.2.0
+        version: 1.2.0(svelte@4.2.18)(typescript@5.5.2)
       '@noble/hashes':
         specifier: ^1.4.0
         version: 1.4.0
@@ -307,8 +307,8 @@ packages:
   '@mysten/bcs@1.0.2':
     resolution: {integrity: sha512-haHT0km/9yIIe8lwo8gDFxGLnoxfRF4WmEVCz4lDXbEVQRsZkF0zB97kukiwMjDuFBaGVUhrOMCLz6td8tSMaQ==}
 
-  '@mysten/sui@1.1.2':
-    resolution: {integrity: sha512-S1MfGvbkUxKGd39bfA6G21UVwJSSgJW8uKHinSByjt86+YKvSZxlF5zr6RVKcP4Rn8gl5ytMbZQfCPn+0nuGTg==}
+  '@mysten/sui@1.2.0':
+    resolution: {integrity: sha512-USDOckZPGcwi2QAuKHEcieoVuW8Xgsm8vtKyXaRrhVLG2t2q3hCEigquiLXh7S3okBbD/P35xjvhR9PdUeqweA==}
     engines: {node: '>=18'}
 
   '@noble/curves@1.4.0':
@@ -1595,7 +1595,7 @@ snapshots:
     dependencies:
       bs58: 5.0.0
 
-  '@mysten/sui@1.1.2(svelte@4.2.18)(typescript@5.5.2)':
+  '@mysten/sui@1.2.0(svelte@4.2.18)(typescript@5.5.2)':
     dependencies:
       '@graphql-typed-document-node/core': 3.2.0(graphql@16.9.0)
       '@mysten/bcs': 1.0.2
