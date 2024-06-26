@@ -1,2 +1,8 @@
 build/
 sui.log*
+node_modules
+.env
+.vscode
+.DS_Store
+dsl.json
+.idea
